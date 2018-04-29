@@ -57,3 +57,6 @@ src/qt/*.pb.h
 Makefile
 Makefile.in
 *.h.in*
+
+# local files
+copybins.sh
