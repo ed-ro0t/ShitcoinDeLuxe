@@ -44,9 +44,9 @@ TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
 class BitcoinTestFramework(object):
-    """Base class for a litecoin test script.
+    """Base class for a shitcoindeluxe test script.
 
-    Individual litecoin test scripts should subclass this class and override the set_test_params() and run_test() methods.
+    Individual shitcoindeluxe test scripts should subclass this class and override the set_test_params() and run_test() methods.
 
     Individual tests can also override the following methods to customize the test setup:
 
