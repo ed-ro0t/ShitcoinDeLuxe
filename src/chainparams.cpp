@@ -148,7 +148,10 @@ public:
                 {900, uint256S("0x415b1c86d6fef15af7a51dbb5aca8e204ac60454480c1d53b1d14eb034cef0a7")},
                 {1000, uint256S("0xf1d584601e77187e22daa8d551d8307295474a49a54055a0e3feb182223da7ee")},
                 {1100, uint256S("0x2fa9d2cb200e033de86488a8b81d8009112f60614a06c803080cf167e99faf90")},
-                {1350, uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")}
+                {1350, uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")},
+                {8918, uint256S("f73dbfc07ee8275e43d57eb2ca5efb8dd721db8ced5d490502fd8330791957e0")},
+                {15241, uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")},
+                {15313, uint256S("944690e2499d10b2fad85abe40bd8d96a8e39e4cfc0cf9dd767e4745502d53e8")}
             }};
 
         // Data as of block 3f6243a04732bd9bc8b2a5af87dfe528d3fcfa457d1078bb44a4b9320f98b363 (height 1300).
