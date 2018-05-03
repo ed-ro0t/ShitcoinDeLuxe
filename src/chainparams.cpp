@@ -101,7 +101,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1517356801; // January 31st, 2018
 
         // The best chain should have at least this much work. But we are a shitcoin!
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000294282450b0");
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000055510ce62c3a");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x3f6243a04732bd9bc8b2a5af87dfe528d3fcfa457d1078bb44a4b9320f98b363"); //1300
@@ -126,10 +126,10 @@ public:
         // Note that of those with the service bits flag, most only support a subset of possible options
         //vSeeds.emplace_back("mainnet-seed.shitcoindeluxe.org", true);
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,53);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,8);
-        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,80);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,73);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,53);  //N
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,8);   //4
+        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,80); //Z
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,73);  //W
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
@@ -141,17 +141,18 @@ public:
 
         checkpointData = (CCheckpointData){
             {
-                {100, uint256S("0xcc732316268fe403d692b4ba04b48c866c357a86d560473ef2a1cea176eea396")},
-                {150, uint256S("0xebc507a4e91a6947847a99d46c6765db03679f1e911c5c0236f59f30d62d0fd9")},
-                {300, uint256S("0xf21218cf0f39cbf23113fe7962860b08292b2c59d6f577b85af5a8280e487289")},
-                {600, uint256S("0x6cb9d69493db2deac182c8dcd56fd01a44f5e775365f09bd973a427cf729d491")},
-                {900, uint256S("0x415b1c86d6fef15af7a51dbb5aca8e204ac60454480c1d53b1d14eb034cef0a7")},
-                {1000, uint256S("0xf1d584601e77187e22daa8d551d8307295474a49a54055a0e3feb182223da7ee")},
-                {1100, uint256S("0x2fa9d2cb200e033de86488a8b81d8009112f60614a06c803080cf167e99faf90")},
-                {1350, uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")},
-                {8918, uint256S("f73dbfc07ee8275e43d57eb2ca5efb8dd721db8ced5d490502fd8330791957e0")},
+                {100,   uint256S("0xcc732316268fe403d692b4ba04b48c866c357a86d560473ef2a1cea176eea396")},
+                {150,   uint256S("0xebc507a4e91a6947847a99d46c6765db03679f1e911c5c0236f59f30d62d0fd9")},
+                {300,   uint256S("0xf21218cf0f39cbf23113fe7962860b08292b2c59d6f577b85af5a8280e487289")},
+                {600,   uint256S("0x6cb9d69493db2deac182c8dcd56fd01a44f5e775365f09bd973a427cf729d491")},
+                {900,   uint256S("0x415b1c86d6fef15af7a51dbb5aca8e204ac60454480c1d53b1d14eb034cef0a7")},
+                {1000,  uint256S("0xf1d584601e77187e22daa8d551d8307295474a49a54055a0e3feb182223da7ee")},
+                {1100,  uint256S("0x2fa9d2cb200e033de86488a8b81d8009112f60614a06c803080cf167e99faf90")},
+                {1350,  uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")},
+                {8918,  uint256S("f73dbfc07ee8275e43d57eb2ca5efb8dd721db8ced5d490502fd8330791957e0")},
                 {15241, uint256S("90879af3c77512419bf6d3bda0030a0c778e01cac37d5fc3ebbf021b659eb56c")},
-                {15313, uint256S("944690e2499d10b2fad85abe40bd8d96a8e39e4cfc0cf9dd767e4745502d53e8")}
+                {15313, uint256S("944690e2499d10b2fad85abe40bd8d96a8e39e4cfc0cf9dd767e4745502d53e8")},
+                {20554, uint256S("2302ebfe233144e3c2453e5b7dbfe1d82ddfed7765e15e29c31585f76fb679a5")}
             }};
 
         // Data as of block 3f6243a04732bd9bc8b2a5af87dfe528d3fcfa457d1078bb44a4b9320f98b363 (height 1300).
@@ -220,10 +221,10 @@ public:
         // nodes with support for servicebits filtering should be at the top
         //vSeeds.emplace_back("testnet-seed.shitcoindeluxe.org", true);
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,107);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,63);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,107);  //k
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);  //2
+        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,63);  //S
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);  //c
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
@@ -312,10 +313,10 @@ public:
             0
         };
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,107);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,63);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,107);  //k
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);  //2
+        base58Prefixes[SCRIPT_ADDRESS2] = std::vector<unsigned char>(1,63);  //S
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);  //c
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
     }
