@@ -133,6 +133,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason, const bool witnes
     }
 
     unsigned int nDataOut = 0;
+    unsigned int nTxnOut = 0;
     txnouttype whichType;
     for (const CTxOut& txout : tx.vout) {
         if (!::IsStandard(txout.scriptPubKey, whichType, witnessEnabled)) {
@@ -148,15 +149,24 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason, const bool witnes
         } else if (IsDust(txout, ::dustRelayFee)) {
             reason = "dust";
             return false;
+        } else if (nBestHeight > STEALTH_ADDRESSES_BLOCK_HEIGHT) {
+            if (txout.nValue == 0)
+                return false;
+            nTxnOut++;
         }
     }
 
-    // only one OP_RETURN txout is permitted
-    if (nDataOut > 1) {
-        reason = "multi-op-return";
-        return false;
+    if (nBestHeight > STEALTH_ADDRESSES_BLOCK_HEIGHT){
+        if (nDataOut > nTxnOut) {
+            return false;
+        }
+    } else {
+        // only one OP_RETURN txout is permitted
+        if (nDataOut > 1) {
+            reason = "multi-op-return";
+            return false;
+        }
     }
-
     return true;
 }
 

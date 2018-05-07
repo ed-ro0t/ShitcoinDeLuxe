@@ -228,6 +228,7 @@ public:
 
     bool operator()(const CKeyID& id) const { return addr->Set(id); }
     bool operator()(const CScriptID& id) const { return addr->Set(id, script_type_); }
+    bool operator()(const CStealthAddress& stxAddr) const { return false; }
     bool operator()(const CNoDestination& no) const { return false; }
 };
 

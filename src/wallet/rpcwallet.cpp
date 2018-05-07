@@ -3144,6 +3144,358 @@ extern UniValue importprunedfunds(const JSONRPCRequest& request);
 extern UniValue removeprunedfunds(const JSONRPCRequest& request);
 extern UniValue importmulti(const JSONRPCRequest& request);
 
+// Stealth Addresses
+
+UniValue getnewstealthaddress(const JSONRPCRequest& request)
+{
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getnewstealthaddress [label]\n"
+            "Returns a new Shitcoin DeLuxe stealth address for receiving payments anonymously." +
+            HelpExampleCli("getnewstealthaddress","My_Stealth_Address"));
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string sLabel;
+    if (request.params.size() > 0)
+        sLabel = params[0].get_str();
+
+
+    CEKAStealthKey akStealth;
+    std::string sError;
+
+    if (0 != pwallet->NewStealthKeyFromAccount(sLabel, akStealth))
+        throw JSONRPCError(RPC_WALLET_ERROR, "NewStealthKeyFromAccount failed.");
+    return akStealth.ToStealthAddress();
+}
+
+UniValue liststealthaddresses(const JSONRPCRequest& request)
+{
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "liststealthaddresses [show_secrets=0]\n"
+            "List owned Stealth Addresses.");
+
+    bool fShowSecrets = false;
+
+    if (request.params.size() > 0) {
+        std::string str = request.params[0].get_str();
+
+        if (IsStringBoolNegative(str))
+            fShowSecrets = false;
+        else
+            fShowSecrets = true;
+    };
+
+    if (fShowSecrets)
+    {
+        LOCK2(cs_main, pwallet->cs_wallet);
+        EnsureWalletIsUnlocked(pwallet);
+    }
+
+    Object result;
+
+    ExtKeyAccountMap::const_iterator mi;
+    for (mi = pwallet->mapExtAccounts.begin(); mi != pwallet->mapExtAccounts.end(); ++mi) {
+        CExtKeyAccount* ea = mi->second;
+
+        if (ea->mapStealthKeys.size() < 1)
+            continue;
+        result.push_back(Pair("Account", ea->sLabel));
+
+        AccStealthKeyMap::iterator it;
+        for (it = ea->mapStealthKeys.begin(); it != ea->mapStealthKeys.end(); ++it) {
+            const CEKAStealthKey& aks = it->second;
+            if (fShowSecrets) {
+                Object objA;
+                objA.push_back(Pair("Label        ", aks.sLabel));
+                objA.push_back(Pair("Address      ", aks.ToStealthAddress()));
+                objA.push_back(Pair("Scan Secret  ", HexStr(aks.skScan.begin(), aks.skScan.end())));
+
+                std::string sSpend;
+                CStoredExtKey* sekAccount = ea->ChainAccount();
+                if (sekAccount && !sekAccount->fLocked) {
+                    CKey skSpend;
+                    if (ea->GetKey(aks.akSpend, skSpend))
+                        sSpend = HexStr(skSpend.begin(), skSpend.end());
+                    else
+                        sSpend = "Extract failed.";
+                } else {
+                    sSpend = "Account Locked.";
+                };
+                objA.push_back(Pair("Spend Secret ", sSpend));
+
+                result.push_back(Pair("Stealth Address", objA));
+            } else {
+                result.push_back(Pair("Stealth Address", aks.ToStealthAddress() + " - " + aks.sLabel));
+            };
+        };
+    };
+
+    if (pwallet->stealthAddresses.size() > 0)
+        result.push_back(Pair("Account", "Legacy"));
+    std::set<CStealthAddress>::iterator it;
+    for (it = pwallet->stealthAddresses.begin(); it != pwallet->stealthAddresses.end(); ++it) {
+        if (it->scan_secret.size() < 1)
+            continue; // stealth address is not owned
+
+        if (fShowSecrets) {
+            Object objA;
+            objA.push_back(Pair("Label        ", it->label));
+            objA.push_back(Pair("Address      ", it->Encoded()));
+            objA.push_back(Pair("Scan Secret  ", HexStr(it->scan_secret.begin(), it->scan_secret.end())));
+            objA.push_back(Pair("Spend Secret ", HexStr(it->spend_secret.begin(), it->spend_secret.end())));
+            result.push_back(Pair("Stealth Address", objA));
+        } else {
+            result.push_back(Pair("Stealth Address", it->Encoded() + " - " + it->label));
+        };
+    };
+
+    return result;
+}
+
+UniValue importstealthaddress(const JSONRPCRequest& request)
+{
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 2)
+        throw std::runtime_error(
+            "importstealthaddress <scan_secret> <spend_secret> [label]\n"
+            "Import an owned Stealth Address." +
+            HelpRequiringPassphrase());
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string sScanSecret = request.params[0].get_str();
+    std::string sSpendSecret = request.params[1].get_str();
+    std::string sLabel;
+
+
+    if (request.params.size() > 2) {
+        sLabel = request.params[2].get_str();
+    };
+
+    std::vector<uint8_t> vchScanSecret;
+    std::vector<uint8_t> vchSpendSecret;
+
+    if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+    } else {
+        if (!DecodeBase58(sScanSecret, vchScanSecret))
+            throw JSONRPCError(RPC_WALLET_ERROR, "Could not decode scan secret as hex or base58.");
+    };
+
+    if (IsHex(sSpendSecret)) {
+        vchSpendSecret = ParseHex(sSpendSecret);
+    } else {
+        if (!DecodeBase58(sSpendSecret, vchSpendSecret))
+            throw JSONRPCError(RPC_WALLET_ERROR, "Could not decode spend secret as hex or base58.");
+    };
+
+    if (vchScanSecret.size() != 32)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Scan secret is not 32 bytes.");
+    if (vchSpendSecret.size() != 32)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Spend secret is not 32 bytes.");
+
+
+    ec_secret scan_secret;
+    ec_secret spend_secret;
+
+    memcpy(&scan_secret.e[0], &vchScanSecret[0], 32);
+    memcpy(&spend_secret.e[0], &vchSpendSecret[0], 32);
+
+    ec_point scan_pubkey, spend_pubkey;
+    if (SecretToPublicKey(scan_secret, scan_pubkey) != 0)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not get scan public key.");
+
+    if (SecretToPublicKey(spend_secret, spend_pubkey) != 0)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not get spend public key.");
+
+
+    CStealthAddress sxAddr;
+    sxAddr.label = sLabel;
+    sxAddr.scan_pubkey = scan_pubkey;
+    sxAddr.spend_pubkey = spend_pubkey;
+
+    sxAddr.scan_secret = vchScanSecret;
+    sxAddr.spend_secret = vchSpendSecret;
+
+    Object result;
+    bool fFound = false;
+    // -- find if address already exists
+    std::set<CStealthAddress>::iterator it;
+    for (it = pwallet->stealthAddresses.begin(); it != pwallet->stealthAddresses.end(); ++it) {
+        CStealthAddress& sxAddrIt = const_cast<CStealthAddress&>(*it);
+        if (sxAddrIt.scan_pubkey == sxAddr.scan_pubkey && sxAddrIt.spend_pubkey == sxAddr.spend_pubkey) {
+            if (sxAddrIt.scan_secret.size() < 1) {
+                sxAddrIt.scan_secret = sxAddr.scan_secret;
+                sxAddrIt.spend_secret = sxAddr.spend_secret;
+                fFound = true; // update stealth address with secrets
+                break;
+            };
+
+            result.push_back(Pair("result", "Import failed - Stealth Address exists."));
+            return result;
+        };
+    };
+
+    if (fFound) {
+        result.push_back(Pair("result", "Success, updated " + sxAddr.Encoded()));
+    } else {
+        pwallet->stealthAddresses.insert(sxAddr);
+        result.push_back(Pair("result", "Success, imported " + sxAddr.Encoded()));
+    };
+
+
+    if (!pwallet->AddStealthAddress(sxAddr))
+       throw JSONRPCError(RPC_WALLET_ERROR, "Could not save to wallet.");
+
+    return result;
+}
+
+
+UniValue sendtostealthaddress(const JSONRPCRequest& request)
+{
+
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
+        throw std::runtime_error(
+            "sendtostealthaddress <stealth_address> <amount> [comment] [comment-to] [narration]\n"
+            "sendtostealthaddress <stealth_address> <amount> [narration]\n"
+            "<amount> is a real and is rounded to the nearest 0.000001" +
+            HelpRequiringPassphrase());
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string sEncoded = request.params[0].get_str();
+    int64_t nAmount = AmountFromValue(request.params[1]);
+
+    std::string sNarr;
+    if (request.params.size() == 3 || request.params.size() == 5) {
+        int nNarr = request.params.size() - 1;
+        if (request.params[nNarr].type() != null_type && !request.params[nNarr].get_str().empty())
+            sNarr = request.params[nNarr].get_str();
+    }
+
+    if (sNarr.length() > 24)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Narration must be 24 characters or less.");
+
+    CStealthAddress sxAddr;
+
+    if (!sxAddr.SetEncoded(sEncoded))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Invalid Shitcoin DeLuxe stealth address.");
+
+    CWalletTx wtx;
+    if (request.params.size() > 3 && request.params[3].type() != null_type && !request.params[3].get_str().empty())
+        wtx.mapValue["comment"] = request.params[3].get_str();
+    if (request.params.size() > 4 && request.params[4].type() != null_type && !request.params[4].get_str().empty())
+        wtx.mapValue["to"] = request.params[4].get_str();
+
+    std::string sError;
+    if (!pwallet->SendStealthMoneyToDestination(sxAddr, nAmount, sNarr, wtx, sError))
+        throw JSONRPCError(RPC_WALLET_ERROR, sError);
+
+    return wtx.GetHash().GetHex();
+}
+
+UniValue scanforstealthtxns(const JSONRPCRequest& request)
+{
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "scanforstealthtxns [fromHeight]\n"
+            "Scan blockchain for owned Stealth Transactions.");
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    Object result;
+    uint32_t nBlocks = 0;
+    uint32_t nTransactions = 0;
+    int32_t nFromHeight = 0;
+
+    CBlockIndex *pindex = pindexGenesisBlock;
+
+    if (request.params.size() > 0)
+        nFromHeight = request.params[0].get_int();
+
+
+    if (nFromHeight > 0)
+    {
+        pindex = mapBlockIndex[hashBestChain];
+        while (pindex->nHeight > nFromHeight
+            && pindex->pprev)
+            pindex = pindex->pprev;
+    };
+
+    if (pindex == NULL)
+        throw std::runtime_error("Genesis Block is not set.");
+
+    // -- locks in AddToWalletIfInvolvingMe
+
+    bool fUpdate = true;
+
+    pwallet->nStealth = 0;
+    pwallet->nFoundStealth = 0;
+
+    while (pindex)
+    {
+        nBlocks++;
+        CBlock block;
+        block.ReadFromDisk(pindex, true);
+
+        BOOST_FOREACH(CTransaction& tx, block.vtx)
+        {
+            if (!tx.IsStandard())
+                continue; // leave out coinbase and others
+            nTransactions++;
+
+            uint256 hash = tx.GetHash();
+            pwallet->AddToWalletIfInvolvingMe(tx, hash, &block, fUpdate);
+        };
+
+        pindex = pindex->pnext;
+    };
+
+    LogPrintf("Scanned %u blocks, %u transactions\n", nBlocks, nTransactions);
+    LogPrintf("Found %u stealth transactions in blockchain.\n", pwallet->nStealth);
+    LogPrintf("Found %u new owned stealth transactions.\n", pwallet->nFoundStealth);
+
+    char cbuf[256];
+    snprintf(cbuf, sizeof(cbuf), "%u new stealth transactions.", pwallet->nFoundStealth);
+
+    result.push_back(Pair("result", "Scan complete."));
+    result.push_back(Pair("found", std::string(cbuf)));
+
+    return result;
+}
+
+
+
 static const CRPCCommand commands[] =
 { //  category              name                        actor (function)           okSafeMode
     //  --------------------- ------------------------    -----------------------    ----------
@@ -3197,6 +3549,12 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrasechange",   &walletpassphrasechange,   true,   {"oldpassphrase","newpassphrase"} },
     { "wallet",             "walletpassphrase",         &walletpassphrase,         true,   {"passphrase","timeout"} },
     { "wallet",             "removeprunedfunds",        &removeprunedfunds,        true,   {"txid"} },
+    // Steath Addresses
+    { "wallet",             "getnewstealthaddress",     &getnewstealthaddress,     false,  {"label"} },
+    { "wallet",             "liststealthaddresses",     &liststealthaddresses,     false,  {} },
+    { "wallet",             "importstealthaddress",     &importstealthaddress,     false,  {"scan_secret", "spend_secret", "label" } },
+    { "wallet",             "sendtostealthaddress",     &sendtostealthaddress,     false,  {"stealth_address", "amount", "narration", "comment", "comment-to"} },
+    { "wallet",             "scanforstealthtxns",       &scanforstealthtxns,       false,  {"fromHeight"} },
 
     { "generating",         "generate",                 &generate,                 true,   {"nblocks","maxtries"} },
 };
@@ -3209,3 +3567,13 @@ void RegisterWalletRPCCommands(CRPCTable &t)
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
         t.appendCommand(commands[vcidx].name, &commands[vcidx]);
 }
+
+bool IsStringBoolPositive(std::string& value)
+{
+    return (value == "+" || value == "on" || value == "true" || value == "1" || value == "yes");
+};
+
+bool IsStringBoolNegative(std::string& value)
+{
+    return (value == "-" || value == "off" || value == "false" || value == "0" || value == "no" || value == "n");
+};

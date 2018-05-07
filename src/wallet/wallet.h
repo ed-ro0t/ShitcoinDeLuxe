@@ -1132,6 +1132,10 @@ public:
        caller must ensure the current wallet version is correct before calling
        this function). */
     bool SetHDMasterKey(const CPubKey& key);
+
+    /* Stealth Addresses */
+    bool LockStealthAddresses();
+    bool UnlockStealthAddresses(const CKeyingMaterial& vMasterKeyIn)
 };
 
 /** A key allocated from the key pool. */
