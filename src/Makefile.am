@@ -165,7 +165,8 @@ BITCOIN_CORE_H = \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
-  wallet/stealth.h \
+  stealth/stealth.h \
+  stealth/types.h \
   warnings.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
@@ -244,7 +245,6 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
-  wallet/stealth.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -330,6 +330,7 @@ libbitcoin_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  stealth/stealth.h \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 
